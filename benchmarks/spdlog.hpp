@@ -1,4 +1,7 @@
 #include <spdlog/spdlog.h>
+#include <spdlog/async.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #ifdef LOG_ONLY_DECLARE
 extern std::shared_ptr<spdlog::logger> g_logger;
@@ -17,8 +20,8 @@ extern std::shared_ptr<spdlog::logger> g_logger;
 // messages. So in an attempt to make the benchmark fair we set the
 // same number of log entries for spdlog's buffer.
 #define LOG_INIT() \
-    spdlog::set_async_mode(512); \
-    g_logger = spdlog::create<spdlog::sinks::simple_file_sink_st>("log", "log.txt", true)
+    spdlog::init_thread_pool(512, 1); \
+    auto g_logger = spdlog::basic_logger_mt<spdlog::async_factory>("log", "log.txt", true)
 
 #define LOG_CLEANUP() \
     g_logger.reset()
