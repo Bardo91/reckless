@@ -19,9 +19,9 @@ extern std::shared_ptr<spdlog::logger> g_logger;
 // to a cache line. This means our 64 kb input buffer fits 512 log
 // messages. So in an attempt to make the benchmark fair we set the
 // same number of log entries for spdlog's buffer.
-#define LOG_INIT() \
-    spdlog::init_thread_pool(512, 1); \
-    auto g_logger = spdlog::basic_logger_mt<spdlog::async_factory>("log", "log.txt", true)
+#define LOG_INIT(queue_size) \
+    spdlog::init_thread_pool(queue_size, 1); \
+    g_logger = spdlog::basic_logger_mt<spdlog::async_factory>("log", "log.txt", true)
 
 #define LOG_CLEANUP() \
     g_logger.reset()
