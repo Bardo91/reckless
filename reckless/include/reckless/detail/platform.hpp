@@ -207,6 +207,27 @@ static_assert(false, "atomic_add_relaxed is not implemented for this compiler");
 #endif
 
 #if defined(__GNUC__)
+template <typename T>
+T atomic_increment_fetch_relaxed(T* ptarget)
+{
+    return __atomic_add_fetch(ptarget, 1, __ATOMIC_RELAXED);
+}
+
+#elif defined(_MSC_VER)
+inline long atomic_increment_fetch_relaxed(long* ptarget)
+{
+    return return InterlockedIncrementNoFence(ptarget);
+}
+inline long long atomic_increment_fetch_relaxed(long long* ptarget)
+{
+    return return InterlockedIncrementNoFence64(ptarget);
+}
+
+#else
+static_assert(false, "atomic_increment_fetch_relaxed is not implemented for this compiler");
+#endif
+
+#if defined(__GNUC__)
 template<typename T>
 bool atomic_compare_exchange_weak_relaxed(T* ptarget, T* pexpected, T desired)
 {
