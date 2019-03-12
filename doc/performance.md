@@ -13,27 +13,33 @@ here are:
 * [spdlog](https://github.com/gabime/spdlog/). This is closest to reckless in
   its design goals. It tries to be very fast, and offers an asynchronous mode.
   See notes below on how it is used in the benchmark.
-* [pantheios](http://www.pantheios.org/) is often seen recommended as a good
-  library with high performance. The author describes it more as a “logging
-  API” that lets you plug in different libraries at the back end. However, it
-  offers some stock back ends, and I suspect that most people use these
-  built-in facilities. I use the “simple” frontend and the “file” backend.
+* [Boost.Log](https://www.boost.org/doc/libs/1_69_0/libs/log/doc/html/index.html)
+  is generally seen as a serious alternative due to Boost's peer-review
+  process and the resulting high esteem in the C++ community. Unsurprisingly
+  this is a "swiss army knife" with high abstraction level and multiple,
+  pluggable log producers and sinks.
 * No operation. This means that the log call is ignored and no code is
   generated apart from the timing code. For the scenarios that measure
   individual call timings, this gives us an idea of how much overhead is added
-  by the measurement itself. For the scenarios that measure total execution
-  time, this lets us compare the execution time to what it is when logging
-  occurs at all.
-  
+  by the measurement itself. For scenarios that measure total execution time,
+  this lets us compare the execution time to what it is when logging occurs at
+  all.
+
+These benchmarks used to include Pantheios which is still often recommended as
+a good library with high performance. However it [hasn't been possible to
+build](https://github.com/synesissoftware/Pantheios/issues/3) for the past
+several years so it doesn't seem like a realistic alternative at the present
+time.
+
 How to read the benchmarks
 --------------------------
-When you make claims about performance, people expect that they are backed up
+When you make claims about performance people expect that they are backed up
 with measurements. But it is important to realize that your use case and
 constraints can have a big impact on how performance is measured and,
-consequently, what results you get. For example, reckless allows you to pass raw
-pointers to the background thread even though they may no longer be valid by
-the time they are written to disk. This can improve performance but can lead
-to strange crashes if you make mistakes. Other logging libraries usually
+consequently, what results you get. For example, reckless allows you to pass
+raw pointers to the background thread even though they may no longer be valid
+by the time they are written to disk. This can improve performance but can
+lead to strange crashes if you make mistakes. The other logging libraries
 prepare the log string at the call site, which avoids the risk of using a
 dangling pointer but increases call latency. This is an intentional design
 tradeoff, and no two alternatives can be compared without considering what
@@ -41,15 +47,15 @@ those tradeoffs are.
 
 For reckless the following assumptions were made, and the benchmarks were
 developed according to those assumptions:
-* It is important to minimize the risk of losing log messages in the event of
-  a crash.
+* It is important to minimize the risk of losing log messages in the event of a
+  crash.
 * It is OK to [trade some precision in floating-point
   output](manual.md#limited-floating-point-accuracy) for added performance.
-* We are concerned with the impact of actual logging, not of logging calls
-  that are filtered out at runtime (say, debug messages that are disabled via
-  some compile-time or run-time switch). We expect to produce many log
-  messages in production environments and not just in debug mode. It is too
-  late to enable log messages post-mortem.
+* We are concerned with the impact of actual logging, not of logging calls that
+  are filtered out at runtime (say, debug messages that are disabled via some
+  compile-time or run-time switch). We expect to produce many log messages in
+  production environments and not just in debug mode. It is too late to enable
+  log messages post-mortem.
 * We care enough about performance that we will accept the risk for
   dangling pointer references. Note that I do not think this will be a problem
   in practice, but I still thought it is significant enough to at least point
@@ -61,12 +67,13 @@ developed according to those assumptions:
 Another factor that I care about is that latency should be kept at a stable,
 insignificant level. If the write buffer is very large then the user may
 experience sudden hangs as the logger suddenly needs to flush large amounts of
-data to disk. The output-buffer size in reckless is configurable and could be
-set very large if desired, but the default size is 8 KiB. This is large enough
-to fit a modern disk sector (4 KiB) while still leaving some room to grow.
-  
+data to disk. The buffer size in reckless is configurable and could be set
+very large if desired, but the default size is 64 KiB. A reasonable
+expectation is for a log entry to use 128 bytes, which would mean that such a
+buffer would fit 512 log entries before stalling.
+
 In the [benchmark made by the spdlog
-author](https://github.com/gabime/spdlog/blob/06e0b0387a27a6e77005adac87f235e744caeb87/bench/spdlog-async.cpp),
+author](https://github.com/gabime/spdlog/blob/bdfc7d2a5a4ad9cc1cebe1feb7e6fcc703840d71/bench/async_bench.cpp),
 the asynchronous queue is at least 50 MiB in size, in order to fit all log
 messages without having to flush. The measurement does not include log setup
 and teardown.  In other words, it only measures time for pushing log entries
@@ -81,21 +88,23 @@ disk. *This is fine*, if:
 * It is OK to lose a large number of log messages in the event of a crash.
 
 But since the constraints are different in this benchmark, the spdlog buffer
-size was set to roughly 8 KiB (128 entries), and the file sink was put in
+size was set to roughly 32 KiB (512 entries), and the file sink was put in
 force-flush mode to ensure that messages are written early instead of being
-kept around indefinitely in the stdio buffer.  This corresponds to the
-behavior of reckless, which flushes whenever it can and defaults to an 8 KiB
-buffer size.
+kept around indefinitely in the stdio buffer. This corresponds to the behavior
+of reckless, which flushes whenever it can. The main reason that the estimated
+RAM usage for the reckless buffer is higher is that entries are aligned in
+memory to the cache-line size. Actual memory usage is difficult to determine
+accurately; spdlog might well have the same actual usage due to alignment of
+queue entries in the memory allocator.
 
 The [Pantheios performance article](http://www.pantheios.org/performance.html)
 shows performance both when logging is turned on and off. It claims that
 “Pantheios is 10-100+ times more efficient than any of the leading diagnostic
 logging libraries currently in popular use.” I’m not sure that this can be
 concluded from the charts at all, but in the event that it can, it applies
-*only when logging is turned off*. For this benchmark I have only tested
-Pantheios for the case when logging is turned *on*. Again, the Pantheios
-developers have clearly set different goals with their benchmarks than I do
-here.
+*only when logging is turned off*. For this benchmark I have only tested for
+the case when logging is turned *on*. Again, the Pantheios developers have
+clearly set different goals with their benchmarks than I do here.
 
 On a similar notion, for stdio and fstream the file buffer is flushed after
 each write. Note that in all libraries tested, flushing means sending the data
@@ -104,24 +113,28 @@ enough to ensure that the data will survive a software crash, but not an OS
 crash or power loss.
 
 The specifications of the test machine are as follows:
-* Intel i7-3770K CPU at 3.5 Ghz with 4 CPU cores. Hyper-threading and
-  SpeedStep is turned off.
-* Western Digital Black WD7501AALS 750GB mechanical disk.
-* 8 GiB RAM.
-* gcc 4.8.4.
-* Linux kernel 3.18.11.
+* AMD Ryzen 7 2700X CPU at 3.7 Ghz with 8 CPU cores. Simultaneous
+  multithreading (the equivalent of what Intel calls hyper-threading) is
+  turned off.
+* Samsung 970 EVO 1TB M.2 solid-state disk.
+* Western Digital Red WD30EFRX 3TB mechanical disk, mounted in a
+  Synology DiskStation DS216j network-attached storage (for disk I/O-bound
+  benchmark).
+* 32 GiB RAM.
+* gcc 7.3.0.
+* Linux kernel 4.14.65.
 
 For the scenarios that measure individual call timings, measurements were made
-according to the article “[How to Benchmark Code Execution Times on Intel IA-32
-and IA-64 Instruction Set
+according to the article “[How to Benchmark Code Execution Times on Intel
+IA-32 and IA-64 Instruction Set
 Architectures](http://www.intel.com/content/www/us/en/intelligent-systems/embedded-systems-training/ia-32-ia-64-benchmark-code-execution-paper.html)”
-by Gabriele Paoloni. To avoid problems with unsynchronized time-stamp counters
+by Gabriele Paoloni. To avoid risk of unsynchronized time-stamp counters
 across CPU cores, each measured thread is forced to run on a specific CPU core
 by setting the thread affinity.
 
 For tests that only measure total execution time, `std::chrono::steady_clock`
 is used.
-  
+
 Periodic calls
 --------------
 ![Periodic calls performance
@@ -182,7 +195,7 @@ situation. In general, if your buffer fills up due to a sporadic burst of data
 then you should consider enlarging the buffer.
 
 The average call latencies relative to reckless are:
-  
+
   Library | Relative time |    IQR |
 ----------|---------------|--------|
       nop |          0.01 | 0.0010 |

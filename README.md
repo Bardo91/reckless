@@ -13,18 +13,13 @@ space.
 
 How it works
 ============
-By low latency I mean that the time from calling the library and returning
-to the caller is as short as I could make it. The code generated at the
-call site consists of
-
-1. Pushing the arguments on a thread-local queue. This has the same cost
-   as pushing the arguments on the stack for a normal function call.
-2. Call to Boost.Lockless (NB: this is bundled with the library, not an
-   external dependency) to register the write request on a shared
-   lockless queue.
-
-The actual message formatting and writing is performed asynchronously by a
-separate thread. This removes or hides several costs:
+By low latency I mean that the time from calling the library and
+returning to the caller is as short as I could make it. The code
+generated at the call site consists only of pushing the arguments on a
+shared, lockless queue. In the non-contended case this has roughly the
+same cost as a making a function call. The actual message formatting
+and writing is performed asynchronously by a separate thread. This
+removes or hides several costs:
 
 * No transition to the kernel at the call site. The kernel is an easily
   overlooked but important cost, not only because the transition costs
@@ -34,6 +29,8 @@ separate thread. This removes or hides several costs:
 * No locks need to be taken for synchronization between threads (unless
   the queue fills up; see the performance article for more information
   about the implications of this).
+* No text formatting needs to be performed before resuming the main
+  task of the program.
 * It doesn't have to wait for the actual I/O operation to complete.
 * If there are bursts of log calls, multiple items on the queue can be
   batched into a single I/O operation, improving throughput without sacrificing
@@ -57,9 +54,10 @@ thread, there are a few caveats you need to be aware of:
   asynchronous logging&mdash;for example fprintf will buffer data until you
   flush it&mdash;but asynchronous logging arguably makes the issue worse. The
   library provides convenience functions to aid with this.
-* As all string formatting is done in a single thread, it could theoretically
-  limit the scalability of your application if the formatting is very
-  expensive.
+* As all string formatting is done in a single thread, it could
+  theoretically limit the scalability of your application if
+  formatting is expensive or your program generates a high volume of
+  log entries in parallel.
 * Performance becomes somewhat less predictable and harder to measure. Rather
   than putting the cost of the logging on the thread that calls the logging
   library, the OS may suspend some other thread to make room for the logging
@@ -106,19 +104,19 @@ int main()
 ```
 This would give the following output:
 ```
-D 2015-03-29 13:23:35.288  Pointer: 0x1e18218
-I 2015-03-29 13:23:35.288  Info line: Hello World!
-W 2015-03-29 13:23:35.288      Warning: 0
-W 2015-03-29 13:23:35.288      Warning: 1
-W 2015-03-29 13:23:35.288      Warning: 2
-W 2015-03-29 13:23:35.288      Warning: 3
-E 2015-03-29 13:23:35.288  Error: 3.140000
+D 2019-03-09 12:53:54.280 Pointer: 0x7fff58378850
+I 2019-03-09 12:53:54.280 Info line: Hello World!
+W 2019-03-09 12:53:54.280     Warning: 0
+W 2019-03-09 12:53:54.280     Warning: 1
+W 2019-03-09 12:53:54.280     Warning: 2
+W 2019-03-09 12:53:54.280     Warning: 3
+E 2019-03-09 12:53:54.280 Error: 3.140000
 ```
 
 Platforms
 =========
-The library currently works only on Linux. Windows and BSD are on the roadmap.
-I don't own any Apple computers, so OS X won't happen unless someone sends me
+The library works on Windows and Linux. BSD is on the roadmap. I don't
+own any Apple computers, so OS X won't happen unless someone sends me
 a patch or buys me hardware.
 
 Building
@@ -132,7 +130,7 @@ To build a program against the library, given the variable RECKLESS
 pointing to the reckless root directory, use:
 
 ```bash
-g++ -std=c++11 myprogram.cpp -I$(RECKLESS)/boost -I$(RECKLESS)/reckless/include -L$(RECKLESS)/reckless/lib -lreckless -lpthread
+g++ -std=c++11 myprogram.cpp -I$(RECKLESS)/reckless/include -L$(RECKLESS)/reckless/lib -lreckless -lpthread
 ```
 
 Alternative 2: using CMake
