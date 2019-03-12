@@ -17,8 +17,13 @@ int main()
     performance_log::logger<4096, performance_log::rdtscp_cpuid_clock> performance_log;
 
     {
-        LOG_INIT(64);
+        LOG_INIT(512);
         performance_log::rdtscp_cpuid_clock::bind_cpu(0);
+
+        for(int i=0; i!=2500; ++i) {
+            usleep(200);
+            LOG(c, i, pi);
+        }
 
         for(int i=0; i!=2500; ++i) {
             usleep(200);
