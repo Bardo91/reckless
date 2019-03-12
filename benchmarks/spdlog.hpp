@@ -21,6 +21,7 @@ extern std::shared_ptr<spdlog::logger> g_logger;
 // same number of log entries for spdlog's buffer.
 #define LOG_INIT(queue_size) \
     spdlog::init_thread_pool(queue_size, 1); \
+    spdlog::set_pattern("%L %Y-%m-%d %H:%M:%S.%e %v"); \
     g_logger = spdlog::basic_logger_mt<spdlog::async_factory>("log", "log.txt", true)
 
 #define LOG_CLEANUP() \
