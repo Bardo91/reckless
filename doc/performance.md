@@ -171,15 +171,15 @@ libraries](images/performance_periodic_calls_reckless.png)
 
 The average call latencies relative to reckless are as follows:
 
-|  Library | Relative time|
-|----------|--------------|
-|      nop |          0.45|
-| reckless |          1.00|
-|   spdlog |         40.85|
-|  fstream |         41.32|
-|    stdio |         43.77|
-|boost_log |         67.42|
-|    g3log |         78.19|
+|  Library | Relative time |  IQR |
+|----------|---------------|------|
+|      nop |          0.45 | 0.27 |
+| reckless |          1.00 | 1.08 |
+|   spdlog |         40.85 | 7.28 |
+|  fstream |         41.32 | 7.55 |
+|    stdio |         43.77 | 7.28 |
+|boost_log |         67.42 | 1.89 |
+|    g3log |         78.19 | 4.65 |
 
 Call burst
 ----------
@@ -189,37 +189,42 @@ Call burst
 
 This scenario stresses the log by generating messages as fast as it can,
 filling up the buffer. The plot is zoomed in so we can see data for all the
-libraries. At first sight the asynchronous alternatives appear to perform
-well, but there are now spikes that appear when the buffer fills up and the
-caller has to wait for data to be written, effectively causing synchronous
-behavior. These spikes in fact go as far as 750 000 ticks for reckless, and 25
-000 000 ticks for spdlog. By applying a moving average we get a better idea of
-the overall performance:
+libraries. At first sight reckless and spdlog appear to perform well, but
+there are now spikes that appear when the buffer fills up and the caller has
+to wait for data to be written, effectively causing synchronous behavior.
+These spikes in fact go as far as 80 000 ns (0.08 milliseconds) for reckless.
+Depending on what input-buffer size you set the distance and height between
+these spikes will vary. For this benchmark the queue size was set so that it
+would fit 128 log entries. A larger queue size would take longer to fill up,
+but once full the latency spike would be even higher.
+
+By applying a moving average we get a better idea of the overall performance:
 
 ![Call burst performance chart with moving
 average](images/performance_call_burst_1_ma.png)
 
-Spdlog performs well until the buffer fills up, but then it stalls waiting for
-the buffer to be emptied to disk. After that it comes out as the slowest
-performer, followed by pantheios. It can now be seen that reckless is still
-the best performer on average, but it is clear that it stalls each time the
-buffer fills up.
+It can now be seen that reckless is still the best performer on average and
+spdlog comes in second, but of all the libraries reckless has by far the
+highest variance in this benchmark. The average latency is now 560
+nanoseconds, compared to 40 nanoseconds in the previous test.
 
 It should be noted that while reckless has been profiled and optimized to
 handle this situation as gracefully as it can, it is far from an ideal
 situation. In general, if your buffer fills up due to a sporadic burst of data
-then you should consider enlarging the buffer.
+then you should consider enlarging the buffer. The API offers performance
+counters to measure how often this happens.
 
 The average call latencies relative to reckless are:
 
-  Library | Relative time |    IQR |
-----------|---------------|--------|
-      nop |          0.01 | 0.0010 |
- reckless |          1.00 | 0.0041 |
-  fstream |          1.54 | 0.0263 |
-    stdio |          1.76 | 0.0182 |
-pantheios |          4.23 | 0.0628 |
-   spdlog |         16.82 | 0.0041 |
+|  Library | Relative time |  IQR |
+|----------|---------------|------|
+|      nop |          0.03 | 0.02 |
+| reckless |          1.00 | 0.02 |
+|   spdlog |          1.93 | 1.08 |
+|  fstream |          2.36 | 0.02 |
+|    stdio |          2.55 | 0.02 |
+|boost_log |          3.84 | 0.02 |
+|    g3log |          4.20 | 1.79 |
 
 Disk I/O
 --------
