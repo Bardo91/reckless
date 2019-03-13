@@ -32,24 +32,24 @@ using writer_error_callback_t = std::function<
 
 class basic_log {
 public:
-
     basic_log();
-    basic_log(writer* pwriter, 
-            std::size_t output_buffer_max_capacity = 0,
-            std::size_t shared_input_queue_size = 0,
-            std::size_t thread_input_buffer_size = 0);
+    basic_log(writer* pwriter);
+    basic_log(writer* pwriter,
+        std::size_t input_buffer_capacity,
+        std::size_t output_buffer_capacity);
     virtual ~basic_log();
-    
+
     basic_log(basic_log const&) = delete;
     basic_log& operator=(basic_log const&) = delete;
 
-    virtual void open(writer* pwriter, 
-            std::size_t output_buffer_max_capacity = 0,
-            std::size_t shared_input_queue_size = 0,
-            std::size_t thread_input_buffer_size = 0);
+    void open(writer* pwriter);
+    void open(writer* pwriter,
+        std::size_t input_buffer_capacity,
+        std::size_t output_buffer_capacity);
+
     virtual void close(std::error_code& ec) noexcept;
     virtual void close();
-    
+
     virtual void flush(std::error_code& ec);
     virtual void flush();
 
@@ -62,10 +62,17 @@ public:
     void temporary_error_policy(error_policy ep);
     error_policy permanent_error_policy() const
     void permanent_error_policy(error_policy ep);
-        
-    void panic_flush();
+
+    void start_panic_flush();
+    void await_panic_flush();
+    bool await_panic_flush(unsigned int miliseconds);
 
     std::thread& worker_thread();
+
+    unsigned input_buffer_full_count() const
+    unsigned input_buffer_high_watermark() const
+    unsigned output_buffer_full_count() const;
+    std::size_t output_buffer_high_watermark() const;
 
 protected:
     template <class Formatter, typename... Args>
@@ -331,13 +338,13 @@ public:
 
     template <typename... Args>
     void debug(char const* fmt, Args&&... args);
-    
+
     template <typename... Args>
     void info(char const* fmt, Args&&... args);
-    
+
     template <typename... Args>
     void warn(char const* fmt, Args&&... args);
-    
+
     template <typename... Args>
     void error(char const* fmt, Args&&... args);
 };
@@ -377,12 +384,12 @@ namespace reckless
             permanent_failure = 2
         };
         static std::error_category const& error_category();
-    
+
         virtual ~writer() = 0;
         virtual std::size_t write(void const* pbuffer, std::size_t count,
             std::error_code& ec) noexcept = 0;
     };
-    
+
     std::error_condition make_error_condition(writer::errc);
     std::error_code make_error_code(writer::errc);
 }   // namespace reckless

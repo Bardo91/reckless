@@ -10,14 +10,17 @@ here are:
   after each call.
 * std::fstream. This uses an `std::fstream` object and streams `std::flush`
   after each log line.
-* [spdlog](https://github.com/gabime/spdlog/). This is closest to reckless in
-  its design goals. It tries to be very fast, and offers an asynchronous mode.
-  See notes below on how it is used in the benchmark.
+* [spdlog](https://github.com/gabime/spdlog/) (version 1.3.1). This is close
+  to reckless in its design goals. It tries to be very fast, and offers an
+  asynchronous mode. See notes below on how it is used in the benchmark.
+* [g3log](https://github.com/KjellKod/g3log) (version 1.3.2) is another
+  asynchronous library that also offers "crash safety", i.e. a signal handler
+  that can flush the log in the event of a crash (like reckless does).
 * [Boost.Log](https://www.boost.org/doc/libs/1_69_0/libs/log/doc/html/index.html)
-  is generally seen as a serious alternative due to Boost's peer-review
-  process and the resulting high esteem in the C++ community. Unsurprisingly
-  this is a "swiss army knife" with high abstraction level and multiple,
-  pluggable log producers and sinks.
+  (from Boost version 1.69.0) is generally seen as a serious alternative due
+  to Boost's peer-review process and the resulting high esteem in the C++
+  community. Unsurprisingly this is a "swiss army knife" with high abstraction
+  level and multiple, pluggable log producers and sinks.
 * No operation. This means that the log call is ignored and no code is
   generated apart from the timing code. For the scenarios that measure
   individual call timings, this gives us an idea of how much overhead is added
@@ -146,24 +149,37 @@ In this scenario we simulate a single-threaded program that makes regular
 calls to the log, but not so often that the buffer is anywhere near filling
 up. Other than logging, the disk is not busy doing anything. It is the most
 forgiving scenario, but probably also very common in interactive applications.
-The two asynchronous libraries predictably perform much better than the
-synchronous ones, since they do not have to wait for the I/O calls. They also
-have a more stable execution time. If we zoom in on the asynchronous
-libraries we get a better idea of the measurement overhead.
 
-![Periodic calls performance chart for asynchronous
-libraries](images/performance_periodic_calls_asynchronous.png)
+For the asynchronous libraries this involves only pushing log entries to a
+queue without having to wait for any I/O, so we should expect that they
+perform much better than the synchronous ones. But unfortunately this can't be
+said for either spdlog or g3log. In the [previous
+benchmark](images/performance_periodic_calls_all_old_spdlog.png) made in 2015,
+spdlog performed much better. The benchmarking code has seen minor changes
+since then but nothing that would explain the difference. A possible
+explanation is that spdlog version 0.17 reportedly switched from a lockless
+queue to a blocking queue, which would mean a higher latency (but less
+variance). I have reached out to the authors of these libraries so they can
+point out any errors in my measurement method or resolve issues in their
+libraries if any.
+
+If we zoom in on the reckless graph we get a better idea of the measurement
+overhead and accuracy.
+
+![Periodic calls performance chart for reckless
+libraries](images/performance_periodic_calls_reckless.png)
 
 The average call latencies relative to reckless are as follows:
 
-  Library | Relative time |  IQR
-----------|---------------|------
-      nop |          0.05 | 0.00
- reckless |          1.00 | 0.46
-   spdlog |          1.60 | 0.08
-    stdio |         19.09 | 0.18
-  fstream |         20.18 | 0.21
-pantheios |         33.10 | 0.27
+|  Library | Relative time|
+|----------|--------------|
+|      nop |          0.45|
+| reckless |          1.00|
+|   spdlog |         40.85|
+|  fstream |         41.32|
+|    stdio |         43.77|
+|boost_log |         67.42|
+|    g3log |         78.19|
 
 Call burst
 ----------

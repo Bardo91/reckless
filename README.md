@@ -161,6 +161,9 @@ For more details, see the [manual](doc/manual.md).
 
 Alternatives
 ============
-Two other logging libraries with a similar, asynchronous design are
-[spdlog](https://github.com/gabime/spdlog/) and
-[g2log](https://bitbucket.org/KjellKod/g2log/).
+Other logging libraries with similar, asynchronous design are
+* [spdlog](https://github.com/gabime/spdlog/)
+* [g3log](https://github.com/KjellKod/g3log/)
+* [NanoLog](https://github.com/Iyengar111/NanoLog) (there is [another
+  NanoLog](https://github.com/PlatformLab/NanoLog) which deviates in design
+  since it logs binary data and requires postprocessing to read the log file)
