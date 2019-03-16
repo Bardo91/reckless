@@ -259,11 +259,11 @@ Mandelbrot set
 
 [benchmarks/mandelbrot.cpp](../benchmarks/mandelbrot.cpp)
 
-The mandelbrot scenario tries to emulate a slightly more realistic situation by
-performing a CPU-intensive workload and logging information about it. It
+The mandelbrot scenario emulates a more realistic situation by performing a
+CPU-intensive workload and logging information about it during the process. It
 computes a 1024x1024-pixel section of the mandelbrot set and logs statistics
 about each pixel produced. In other words, it produces about one million log
-lines over the course of 5 to 50 seconds of computation time, depending on the
+lines over the course of 5 to 25 seconds of computation time, depending on the
 number of CPU cores taking part in the computation
 
 ![Bar chart showing total running time](images/performance_mandelbrot.png)
@@ -287,33 +287,39 @@ performs better than the synchronous alternatives.
 
 The average overhead for the single-thread case relative to reckless is:
 
-  Library | Relative time | IQR
-----------|---------------|-----
- reckless |          1.00 | 0.22
-   spdlog |          7.80 | 0.66
-    stdio |         21.31 | 0.46
-  fstream |         21.73 | 0.41
-pantheios |         49.37 | 1.21
+|  Library | Relative time |  IQR |
+|----------|---------------|------|
+| reckless |          1.00 | 0.60 |
+|   spdlog |          9.21 | 1.78 |
+|  fstream |         10.73 | 0.16 |
+|    stdio |         12.21 | 0.19 |
+|    g3log |         13.40 | 2.89 |
+|boost_log |         15.21 | 0.27 |
 
-With three worker threads we have:
 
-  Library | Relative time |  IQR
-----------|---------------|-----
- reckless |          1.00 | 0.12
-   spdlog |          5.34 | 0.41
-    stdio |         22.01 | 0.46
-  fstream |         22.81 | 0.30
-pantheios |         37.53 | 0.60
+With four worker threads we have:
 
-And finally, with four worker threads, we have:
+|  Library | Relative time |  IQR |
+|----------|---------------|------|
+|      nop |         -0.00 | 0.09 |
+| reckless |          1.00 | 0.11 |
+|   spdlog |          7.30 | 0.12 |
+|    g3log |         10.58 | 0.57 |
+|boost_log |         13.17 | 0.18 |
+|    stdio |         15.03 | 0.34 |
+|  fstream |         15.66 | 0.51 |
 
-  Library | Relative time |    IQR
-----------|---------------|-------
- reckless |          1.00 |  0.054
-    stdio |          1.42 |  0.024
-  fstream |          1.52 |  0.027
-pantheios |          2.24 |  0.035
-   spdlog |          4.66 |  0.935
+And finally with eight worker threads we have:
+
+|  Library | Relative time |  IQR |
+|----------|---------------|------|
+|      nop |          0.00 | 0.01 |
+| reckless |          1.00 | 0.12 |
+|boost_log |          1.82 | 0.03 |
+|   spdlog |          1.87 | 0.10 |
+|    g3log |          3.09 | 0.15 |
+|    stdio |          3.70 | 0.16 |
+|  fstream |          4.62 | 0.17 |
 
 Conclusions
 -----------
