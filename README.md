@@ -167,3 +167,4 @@ Other logging libraries with similar, asynchronous design are
 * [NanoLog](https://github.com/Iyengar111/NanoLog) (there is [another
   NanoLog](https://github.com/PlatformLab/NanoLog) which deviates in design
   since it logs binary data and requires postprocessing to read the log file)
+* [mini-async-log](https://github.com/RafaGago/mini-async-log)

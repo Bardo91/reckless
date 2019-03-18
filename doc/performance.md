@@ -17,7 +17,7 @@ here are:
   asynchronous library that also offers "crash safety", i.e. a signal handler
   that can flush the log in the event of a crash (like reckless does).
 * [Boost.Log](https://www.boost.org/doc/libs/1_69_0/libs/log/doc/html/index.html)
-  (from Boost version 1.69.0) is generally seen as a serious alternative due
+  (from Boost version 1.65.0) is generally seen as a serious alternative due
   to Boost's peer-review process and the resulting high esteem in the C++
   community. Unsurprisingly this is a "swiss army knife" with high abstraction
   level and multiple, pluggable log producers and sinks.
@@ -323,11 +323,27 @@ And finally with eight worker threads we have:
 
 Conclusions
 -----------
-Based on the different scenarios I think I can say with some confidence that,
-given the use case and constraints outlined in the introduction, reckless will
-perform significantly better. The advantage is smaller when the log is heavily
-loaded, but reckless still remains the best performer. For more typical loads,
-the speed advantage over a simple `fprintf` can be a factor of 20. Coupled
-with its relative ease of use and similarity to plain `fprintf` calls (yet
-type-safe behavior), it should be enough to make reckless a serious contender
-when you decide on which logging library to use.
+Based on the different tests I think I can say with confidence that reckless
+will perform significantly better in many typical scenarios. The advantage is
+smaller when the log is heavily loaded, but reckless is still twice as fast.
+For low loads, the speed advantage over a simple `fprintf` can be a factor of
+40.
+
+Other benchmarks that I have seen (see e.g. [spdlog's
+benchmark](https://github.com/gabime/spdlog/blob/v1.x/bench/async_bench.cpp)
+and [NanoLog's
+benchmark](https://github.com/Iyengar111/NanoLog/blob/master/nano_vs_spdlog_vs_g3log_vs_reckless.cpp))
+focus on the throughput by simply writing a large number of log records at the
+highest possible rate and measuring the time it takes to run the full batch.
+But if your program consistently maintains that rate of logging, then arguably
+the log output has become the primary function of your program and then any
+logging library might be the wrong tool for the task. So although it is an
+interesting benchmark I think it is far from the most important one to look
+at. In my own measurements reckless is still the best performer in this case
+but, for full disclosure, other people have come to [other
+conclusions](https://github.com/Iyengar111/NanoLog#thread-count-2---percentile-latency-numbers-in-microseconds-lower-number-means-better-performance).
+
+In any case, coupled with its relative ease of use and similarity to plain
+`fprintf` calls (yet type-safe behavior) these numbers should be enough to
+make reckless a serious contender when you decide on which logging library to
+use.
