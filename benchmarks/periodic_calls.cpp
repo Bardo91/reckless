@@ -14,7 +14,7 @@ float pi = 3.1415;
 int main()
 {
     unlink("log.txt");
-    performance_log::logger<4096, performance_log::rdtscp_cpuid_clock> performance_log;
+    performance_log::logger<6000, performance_log::rdtscp_cpuid_clock> performance_log;
 
     {
         LOG_INIT(512);
